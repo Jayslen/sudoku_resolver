@@ -1,148 +1,170 @@
-use std::collections::HashSet;
-
-use self::board::{GAME_BOARD, Position};
-use self::values::{current_grid, x_axis, y_axis};
+use self::board::{Board, GameBoard};
 
 mod board;
 mod values;
 
 fn main() {
-    let position = Position {
-        y: 0,
-        x: 0,
-        row: 0,
-        cell: 0,
-    };
-    let current_grid = current_grid(&GAME_BOARD, &position);
-    let x_values = x_axis(&GAME_BOARD, &position);
-    let y_values = y_axis(&GAME_BOARD, &position);
-    println!("Current row values: {:?}", current_grid);
-    println!("X axis values: {:?}", x_values);
-    println!("Y axis values: {:?}", y_values);
+    let mut game_board = GameBoard::new();
 
-    let unique_values: HashSet<u8> = HashSet::from_iter(
-        current_grid
-            .into_iter()
-            .chain(x_values.into_iter())
-            .chain(y_values.into_iter()),
-    );
-    println!("Unique values: {:?}", unique_values);
+    solve(&mut game_board);
+
+    print_board(&game_board);
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::board::{GAME_BOARD as TEST_BOARD, Position};
-//     // const TEST_BOARD: ;
+fn solve(board: &mut Board) -> bool {
+    let empty_cell = GameBoard::find_empty_cell(board);
 
-//     #[test]
-//     // get all values in the same x axis (column)
-//     fn get_x_values_1() {
-//         let row_values = get_x_value(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 0,
-//                 row: 0,
-//                 cell: 0,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([9, 5, 8, 7]));
-//     }
+    if let Some(coords) = empty_cell {
+        // println!("Found empty cell at ({}, {})", coords.x, coords.y);
+        for value in 1u8..=9 {
+            if GameBoard::is_valid(board, &coords, &value) {
+                let position = GameBoard::coords_to_position(&coords);
+                // println!("{:?}", position);
+                board[position.grid_row as usize][position.grid_col as usize]
+                    [position.inner_row as usize][position.inner_col as usize] = Some(value);
 
-//     #[test]
-//     fn get_x_values_2() {
-//         let row_values = get_x_value(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 0,
-//                 row: 0,
-//                 cell: 1,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([8, 3, 2, 9, 5]));
-//     }
+                // print_board(board);
+                if solve(board) {
+                    return true;
+                }
+                board[position.grid_row as usize][position.grid_col as usize]
+                    [position.inner_row as usize][position.inner_col as usize] = None;
+            }
+        }
+    } else {
+        return true;
+    }
+    false
+}
 
-//     #[test]
-//     fn get_x_values_3() {
-//         let row_values = get_x_value(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 0,
-//                 row: 0,
-//                 cell: 2,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([5, 4, 8]));
-//     }
+pub fn print_board(board: &Board) {
+    for big_row in 0..3 {
+        for inner_row in 0..3 {
+            if big_row > 0 && inner_row == 0 {
+                println!("------+-------+------");
+            }
 
-//     #[test]
-//     fn get_y_values_1() {
-//         let row_values = get_y_values(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 0,
-//                 row: 0,
-//                 cell: 0,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([9, 1, 5, 7]));
-//     }
-//     #[test]
-//     fn get_y_values_2() {
-//         let row_values = get_y_values(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 0,
-//                 row: 0,
-//                 cell: 1,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([8, 5, 7, 2]));
-//     }
+            for big_col in 0..3 {
+                for inner_col in 0..3 {
+                    let cell = board[big_row][big_col][inner_row][inner_col];
 
-//     #[test]
-//     fn get_y_values_3() {
-//         let row_values = get_y_values(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 0,
-//                 row: 0,
-//                 cell: 2,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([4, 6, 1]));
-//     }
+                    match cell {
+                        Some(value) => print!("{} ", value),
+                        None => print!(". "),
+                    }
+                }
 
-//     #[test]
-//     fn get_y_values_4() {
-//         let row_values = get_y_values(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 2,
-//                 row: 0,
-//                 cell: 0,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([9]));
-//     }
+                if big_col < 2 {
+                    print!("| ");
+                }
+            }
 
-//     #[test]
-//     fn get_y_values_5() {
-//         let row_values = get_y_values(
-//             &TEST_BOARD,
-//             Position {
-//                 y: 0,
-//                 x: 2,
-//                 row: 0,
-//                 cell: 2,
-//             },
-//         );
-//         assert_eq!(row_values, HashSet::from([7, 5, 2, 8, 1, 6]));
-//     }
-// }
+            println!();
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::board::{Coords, GameBoard};
+    use crate::values;
+
+    #[test]
+    fn test_position_conversion() {
+        let coords = Coords { x: 2, y: 0 };
+        let position = GameBoard::coords_to_position(&coords);
+        assert_eq!(position.grid_row, 0);
+        assert_eq!(position.grid_col, 0);
+        assert_eq!(position.inner_row, 0);
+        assert_eq!(position.inner_col, 2);
+    }
+    #[test]
+    fn test_position_conversion_2() {
+        let coords = Coords { x: 8, y: 2 };
+        let position = GameBoard::coords_to_position(&coords);
+        assert_eq!(position.grid_row, 0);
+        assert_eq!(position.grid_col, 2);
+        assert_eq!(position.inner_row, 2);
+        assert_eq!(position.inner_col, 2);
+    }
+
+    #[test]
+    fn test_position_conversion_3() {
+        let coords = Coords { x: 2, y: 7 };
+        let position = GameBoard::coords_to_position(&coords);
+        assert_eq!(position.grid_row, 2);
+        assert_eq!(position.grid_col, 0);
+        assert_eq!(position.inner_row, 1);
+        assert_eq!(position.inner_col, 2);
+    }
+
+    #[test]
+    fn test_position_conversion_4() {
+        let coords = Coords { x: 5, y: 1 };
+        let position = GameBoard::coords_to_position(&coords);
+        assert_eq!(position.grid_row, 0);
+        assert_eq!(position.grid_col, 1);
+        assert_eq!(position.inner_row, 1);
+        assert_eq!(position.inner_col, 2);
+    }
+
+    #[test]
+    fn get_values_1() {
+        let board = GameBoard::new();
+        let coords = Coords { x: 2, y: 0 };
+        let position = GameBoard::coords_to_position(&coords);
+        let x_values = values::x_axis(&board, &position);
+        let y_values = values::y_axis(&board, &position);
+        let grid_values = values::current_grid(&board, &position);
+
+        assert_eq!(x_values, vec![9, 2, 4, 8]);
+        assert_eq!(y_values, vec![3, 1, 5, 2, 7]);
+        assert_eq!(grid_values, vec![9, 2, 3, 8, 1]);
+    }
+
+    #[test]
+    fn get_values_2() {
+        let board = GameBoard::new();
+        let coords = Coords { x: 5, y: 3 };
+        let position = GameBoard::coords_to_position(&coords);
+        let x_values = values::x_axis(&board, &position);
+        let y_values = values::y_axis(&board, &position);
+        let grid_values = values::current_grid(&board, &position);
+
+        assert_eq!(x_values, vec![5, 9, 1, 2]);
+        assert_eq!(y_values, vec![1, 6, 9, 8, 3]);
+        assert_eq!(grid_values, vec![9, 8, 6]);
+    }
+
+    #[test]
+    fn get_values_3() {
+        let board = GameBoard::new();
+        let coords = Coords { x: 3, y: 3 };
+        let position = GameBoard::coords_to_position(&coords);
+        let x_values = values::x_axis(&board, &position);
+        let y_values = values::y_axis(&board, &position);
+        let grid_values = values::current_grid(&board, &position);
+
+        assert_eq!(x_values, vec![5, 9, 1, 2]);
+        assert_eq!(y_values, vec![7, 9, 6]);
+        assert_eq!(grid_values, vec![9, 8, 6]);
+    }
+    #[test]
+    fn valid_position() {
+        let board = GameBoard::new();
+        let coords = Coords { x: 2, y: 0 };
+
+        assert!(!GameBoard::is_valid(&board, &coords, &4));
+        assert!(GameBoard::is_valid(&board, &coords, &6));
+        assert!(!GameBoard::is_valid(&board, &coords, &8));
+    }
+
+    // #[test]
+    // fn find_empty_cell() {
+    //     let board = GameBoard::new();
+    //     let empty_cell = GameBoard::find_empty_cell(&board).expect("error");
+
+    //     assert_eq!(empty_cell.x, 2);
+    //     assert_eq!(empty_cell.y, 0);
+    // }
+}
